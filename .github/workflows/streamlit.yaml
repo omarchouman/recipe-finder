@@ -25,4 +25,4 @@ jobs:
       
       - name: Run Streamlit
         run: |
-          streamlit run main.py
+          nohup streamlit run main.py
