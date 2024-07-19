@@ -55,7 +55,7 @@ jobs:
 
       - name: Run Streamlit app on EC2
         run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
+          ssh -i ${{ secrets.SSH_PRIVATE_KEY }} ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} << 'EOF'
             cd /home/${{ secrets.REMOTE_USER }}/streamlit-app
             source venv/bin/activate
             nohup streamlit run main.py --server.port 8501 --server.headless true &
