@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8"]
+        python-version: ["3.9"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -52,27 +52,36 @@ jobs:
           REMOTE_HOST: ${{secrets.REMOTE_HOST}}
           REMOTE_USER: ${{secrets.REMOTE_USER}}
         
-      - name: Installing Packages
+      - name: Installing Docker on Server
         uses: appleboy/ssh-action@master
-        with: 
-          host: ${{secrets.REMOTE_HOST}}
-          username: ${{secrets.REMOTE_USER}}
-          key: ${{secrets.SSH_PRIVATE_KEY}}
-          port: 22
-          script: | 
-            sudo apt update
-            sudo apt install -y python3-pip python3-venv
-          
-      - name: Run Streamlit App
-        uses: appleboy/ssh-action@master
-        with: 
-          host: ${{secrets.REMOTE_HOST}}
-          username: ${{secrets.REMOTE_USER}}
-          key: ${{secrets.SSH_PRIVATE_KEY}}
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-           python3 -m venv venv
-           source venv/bin/activate 
-           pip install --upgrade pip 
-           pip install -r requirements.txt 
-           nohup streamlit run app.py --server.port 80 > /dev/null 2>&1 & 
+            sudo apt-get update
+            sudo apt-get install -y docker.io
+
+      - name: Pull Docker image on Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} -p ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+            docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/recipe-finder-app:latest
+
+      - name: Run Docker container on Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            docker stop recipe-finder-app || true
+            docker rm recipe-finder-app || true
+            docker run -d -p 8501:8501 --name recipe-finder-app ${{ secrets.DOCKER_HUB_USERNAME }}/recipe-finder-app:latest
